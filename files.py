@@ -59,10 +59,15 @@ def sanitize_file_name(file_name: str, replace_sanitized_chars_with: str='') -> 
         return None
 
 
-def read_from_web_or_disk(url_or_path: Union[Path, str]):
+def read_from_web_or_disk(url_or_path: Union[Path, str], verify_https: bool=True):
     path = str(url_or_path)
     if path.startswith('http'):
-        response = urllib.request.urlopen(path)
+        if verify_https:
+            context = None
+        else:
+            import ssl
+            context = ssl._create_unverified_context()
+        response = urllib.request.urlopen(path, context=context)
         return response.read().decode('utf-8')
     else:
         with open(path) as f:

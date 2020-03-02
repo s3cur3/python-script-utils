@@ -44,7 +44,7 @@ class ComponentBlock:
 
 def parse_component_list(path_to_component_list_txt: Pathlike='https://lookup.x-plane.com/_lookup_mobile_/component_list.txt') -> List[ComponentBlock]:
     try:
-        component_list = read_from_web_or_disk(path_to_component_list_txt)
+        component_list = read_from_web_or_disk(path_to_component_list_txt, verify_https=False)
     except URLError as e:
         iphone_repo_root = Path(__file__).parent.parent.parent
         fallback_path = iphone_repo_root / 'resources/common_ios/config/component_list.txt'
