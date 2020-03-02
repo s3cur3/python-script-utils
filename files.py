@@ -92,23 +92,37 @@ def resolve_symlinks(p: Pathlike) -> Path:
     """Unlke Path.resolve(), this does *not* throw an error if the path doesn't exist."""
     return Path(os.path.realpath(p))
 
-def correct_case(p: Pathlike, allow_file_not_found: bool=True) -> Path:
+global _files_on_disk_cache
+_files_on_disk_cache = {'/'}
+
+def correct_case(p: Pathlike, allow_file_not_found: bool=True, use_cache=False) -> Path:
     """
     Given a path on a case-insensitive file system, gives you the canonical version of the path.
     E.g., if your file is at /foo/bar/baz.bang and you pass in /fOo/Bar/BAZ.bang, you get back the correct version.
+
+    If use_cache is true, we'll first check a global cache (from the lifetime of the program) before
+    going to disk. This massively speeds up subsequent queries, but it's prone to issues if you're
+    removing files from disk during the program's run, or if you're asking about relative paths and
+    you change the program's current working directory.
     """
+    global _files_on_disk_cache
     # This is actually kind of a pain in the ass. We have to walk the complete path up to the file,
     # listing directories as we go, and "choosing" the correct case for each component from the list.
-    # This will fail if your file system is case-sensitive and allowed you to do something evil like
+    # This will fail if your file system is case-insensitive and allowed you to do something evil like
     # create different files name like /foo/bar and /foo/BaR
     parts = []
-    suspect_parts = Path(p).parts
+    path_p = Path(p)
+    if use_cache and path_p in _files_on_disk_cache:
+        return path_p
+    suspect_parts = path_p.parts
     for part_idx, part in enumerate(suspect_parts):
         if part == '/':
             parts.append(part)
         else:
             path_up_to_this_part = Path(*suspect_parts[:part_idx])
-            for choice in path_up_to_this_part.glob('*'):
+            files_in_dir = set(path_up_to_this_part.glob('*'))
+            _files_on_disk_cache |= files_in_dir
+            for choice in files_in_dir:
                 if choice.name.lower() == part.lower():
                     parts.append(choice.name)
                     break

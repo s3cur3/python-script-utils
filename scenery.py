@@ -19,7 +19,7 @@ def normalize_dir_char(scenery_asset: Pathlike):
         return Path(normalize_dir_char(str(scenery_asset)))
 
 
-def fix_path_case_and_slashes_in_library_txt_line(line: str, from_library_txt: Path, assert_no_missing_assets: bool=False) -> str:
+def fix_path_case_and_slashes_in_library_txt_line(line: str, from_library_txt: Path, assert_no_missing_assets: bool=False, use_path_cache=False) -> str:
     slashes_corrected = normalize_dir_char(line)
     single_spaces = compress_spaces(slashes_corrected).strip()
     with suppress(ValueError):
@@ -27,12 +27,12 @@ def fix_path_case_and_slashes_in_library_txt_line(line: str, from_library_txt: P
         if kw in ('EXPORT', 'EXPORT_EXTEND'):
             line_before_path = slashes_corrected.rsplit(str(suspect_disk_path), maxsplit=1)[0]
             rel_path, exists = case_correct_asset_path(from_library_txt.parent / Path(suspect_disk_path),
-                                                       from_library_txt, assert_no_missing_assets)
+                                                       from_library_txt, assert_no_missing_assets, use_path_cache=use_path_cache)
             return f"{line_before_path}{rel_path}\n"
     return line
 
 
-def fix_path_case_in_asset_line_if_exists(asset_line: str, asset_tokens: Iterable[str], referenced_in_file: Path) -> Optional[str]:
+def fix_path_case_in_asset_line_if_exists(asset_line: str, asset_tokens: Iterable[str], referenced_in_file: Path, use_path_cache=False) -> Optional[str]:
     with suppress(ValueError):
         tokens = compress_spaces(asset_line).strip().split(' ')
         if len(tokens) > 1 and tokens[0] in asset_tokens:
@@ -42,7 +42,7 @@ def fix_path_case_in_asset_line_if_exists(asset_line: str, asset_tokens: Iterabl
             else:
                 line_before_path = asset_line.rsplit(str(suspect_disk_path), maxsplit=1)[0]
                 correct_rel_path, exists = case_correct_asset_path(referenced_in_file.parent / Path(normalize_dir_char(suspect_disk_path)),
-                                                                   referenced_in_file)
+                                                                   referenced_in_file, use_path_cache=use_path_cache)
                 if exists:
                     return f"{normalize_dir_char(line_before_path)}{correct_rel_path}\n"
                 else:
@@ -50,14 +50,14 @@ def fix_path_case_in_asset_line_if_exists(asset_line: str, asset_tokens: Iterabl
     return asset_line
 
 
-def fix_path_case_and_slashes_in_library_txt(library_txt: Path):
-    out_lines = synchronous_map(functools.partial(fix_path_case_and_slashes_in_library_txt_line, from_library_txt=library_txt),
+def fix_path_case_and_slashes_in_library_txt(library_txt: Path, use_path_cache=False):
+    out_lines = synchronous_map(functools.partial(fix_path_case_and_slashes_in_library_txt_line, from_library_txt=library_txt, use_path_cache=use_path_cache),
                                 read_lines(library_txt))
     with library_txt.open('w') as out_file:
         out_file.writelines(out_lines)
 
 
-def case_correct_asset_path(absolute_asset_path: Path, referenced_from_file: Optional[Path], assert_exists: bool=False) -> Tuple[Path, bool]:
+def case_correct_asset_path(absolute_asset_path: Path, referenced_from_file: Optional[Path], assert_exists: bool=False, use_path_cache: bool=False) -> Tuple[Path, bool]:
     """@return The case corrected path, as much as we could case-correct, plus a bool indicating whether the file exists on disk"""
     def get_case_corrected_absolute_asset_path(absolute_asset_path: Path, assert_exists: bool=False) -> Tuple[Path, bool]:
         def variant_suffixes_to_try(p: Path) -> Iterable[str]:
@@ -74,7 +74,7 @@ def case_correct_asset_path(absolute_asset_path: Path, referenced_from_file: Opt
                 if alternate_version.is_file():
                     suffix_to_use = absolute_asset_path.suffix if absolute_asset_path.suffix.lower() != alternate_version.suffix.lower() else absolute_asset_path.suffix
                     return correct_case(alternate_version).with_suffix(suffix_to_use), True
-        return correct_case(absolute_asset_path), input_path_exists
+        return correct_case(absolute_asset_path, use_cache=use_path_cache), input_path_exists
 
     abs_path, exists_on_disk = get_case_corrected_absolute_asset_path(absolute_asset_path, assert_exists)
     if referenced_from_file:
