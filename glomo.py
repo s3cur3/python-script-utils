@@ -8,6 +8,9 @@ from utils.files import read_from_web_or_disk, Pathlike
 from utils.highwinds_cdn import CdnServer
 
 
+server_version_suffix = '_1120'
+component_list_url = f'https://lookup.x-plane.com/_lookup_mobile_/component_list{server_version_suffix}.txt'
+
 @dataclass
 class ComponentBlock:
     component_name: str
@@ -42,7 +45,7 @@ class ComponentBlock:
                               sim_version_high=int(sim_versions_str[1]))
 
 
-def parse_component_list(path_to_component_list_txt: Pathlike='https://lookup.x-plane.com/_lookup_mobile_/component_list.txt') -> List[ComponentBlock]:
+def parse_component_list(path_to_component_list_txt: Pathlike=component_list_url) -> List[ComponentBlock]:
     try:
         component_list = read_from_web_or_disk(path_to_component_list_txt, verify_https=False)
     except URLError as e:
@@ -55,7 +58,7 @@ def parse_component_list(path_to_component_list_txt: Pathlike='https://lookup.x-
     nuked_end = skipped_header.split('ENDOFLIST')[0]
     return [ComponentBlock.from_str(component_token + block) for block in nuked_end.split(component_token) if block]
 
-def component_list_version(path_to_component_list_txt: Pathlike='https://lookup.x-plane.com/_lookup_mobile_/component_list.txt') -> int:
+def component_list_version(path_to_component_list_txt: Pathlike=component_list_url) -> int:
     next_line_is_version = False
     for line in read_from_web_or_disk(path_to_component_list_txt).splitlines():
         if line.rstrip() == 'COMPONENTS':
