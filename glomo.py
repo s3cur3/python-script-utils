@@ -8,7 +8,7 @@ from utils.files import read_from_web_or_disk, Pathlike
 from utils.highwinds_cdn import CdnServer
 
 
-server_version_suffix = '_1120'
+server_version_suffix = '_1110'
 component_list_url = f'https://lookup.x-plane.com/_lookup_mobile_/component_list{server_version_suffix}.txt'
 
 @dataclass
