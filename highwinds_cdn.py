@@ -25,8 +25,8 @@ except KeyError:
 
 
 class CdnServer(Enum):
-    MobileSecure = 'b3y9j3a5'
-    MobileUnsecured = 'j4b5j9p4'
+    MobileSecure = 'p8q9g5z4'
+    MobileUnsecured = 'j6b5v6a2'
 
     def for_component_list(self) -> str:
         return 'SERVER_SECURE' if self is CdnServer.MobileSecure else 'SERVER_UNSECURE'
