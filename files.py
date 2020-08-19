@@ -148,6 +148,12 @@ def read_lines(p: Pathlike) -> List[str]:
     with Path(p).open() as f:
         return list(f.readlines())
 
+def read_lines_cleaned(p: Pathlike) -> List[str]:
+    with Path(p).open() as f:
+        return list(line.strip()
+                    for line in f.readlines()
+                    if line.strip())
+
 def read_binary(p: Pathlike) -> bytes:
     return Path(p).open('rb').read()
 
